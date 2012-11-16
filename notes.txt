@@ -1,0 +1,13 @@
+Notes from Dennis
+
+If we are doing some sort of wait for incoming message -> push to concurrent queue, have to be wary of that write blocking,
+otherwise we can get backed up on the Netty side, which is bad. Two solutions to this
+1. Have multiple internal queues
+2. Have the concurrent queue be unbounded
+I prefer the latter one, because nsqd can manage some of the bookkeeping of how many messages to send. This means, however,
+that we won't be able to efficiently determine the length of the queue (if it is linked list backed), so we may need to 
+maintain an external counter, which is fine.
+
+Dennis also counsels that I look into using Callable instead of Runnable... That will return a Future that we can act on.
+I don't think I want that, because I want whoever submitted that task to be able to move on. Only catch is that I do need to know
+which connection that message came from.
