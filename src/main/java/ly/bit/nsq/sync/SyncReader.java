@@ -1,8 +1,8 @@
 package ly.bit.nsq.sync;
 
-import ly.bit.nsq.Connection;
 import ly.bit.nsq.Message;
 import ly.bit.nsq.NSQReader;
+import ly.bit.nsq.exceptions.RequeueWithoutBackoff;
 
 public class SyncReader extends NSQReader {
 	
@@ -10,30 +10,36 @@ public class SyncReader extends NSQReader {
 	
 	private class SyncMessageRunnable implements Runnable {
 		
-		public SyncMessageRunnable(Message msg, Connection conn) {
+		public SyncMessageRunnable(Message msg) {
 			super();
 			this.msg = msg;
-			this.conn = conn;
 		}
 
 		private Message msg;
-		private Connection conn;
 
 		public void run() {
 			boolean success = false;
+			boolean doDelay = true;
 			try{
 				success = handler.handleMessage(msg);
+			}catch(RequeueWithoutBackoff e){
+				doDelay = false;
 			}catch(Exception e){
-				// TODO
+				// do nothing, success already false
 			}
-			// tell conn about success or failure
 			
+			// tell conn about success or failure
+			if(success){
+				finishMessage(msg);
+			}else{
+				requeueMessage(msg, doDelay);
+			}
 		}
 	}
 
 	@Override
-	protected Runnable makeRunnableFromMessage(Message msg, Connection conn) {
-		return new SyncMessageRunnable(msg, conn);
+	protected Runnable makeRunnableFromMessage(Message msg) {
+		return new SyncMessageRunnable(msg);
 	}
 
 }

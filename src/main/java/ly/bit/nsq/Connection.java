@@ -13,12 +13,19 @@ package ly.bit.nsq;
  * We can all revisit as we flesh more stuff out.
  *
  */
-public class Connection {
+public abstract class Connection {
 	
 	protected NSQReader reader;
 	
 	public void messageReceivedCallback(Message message){
-		this.reader.addMessageForProcessing(message, this);
+		this.reader.addMessageForProcessing(message);
+	}
+	
+	public abstract void send(String command);
+	
+	public Message decode(byte[] data) {
+		// TODO: load fields from message data. see https://github.com/bitly/pynsq/blob/master/nsq/nsq.py#L24
+		return null;
 	}
 
 }
