@@ -2,6 +2,8 @@ package ly.bit.nsq;
 
 import java.util.concurrent.ThreadPoolExecutor;
 
+import ly.bit.nsq.exceptions.NSQException;
+
 
 public abstract class NSQReader {
 	
@@ -23,12 +25,20 @@ public abstract class NSQReader {
 			return;
 		}else{
 			int newDelay = doDelay ? 0 : this.requeueDelay * msg.getAttempts();
-			msg.getConn().send(ConnectionUtils.requeue(msg.getId(), newDelay));
+			try {
+				msg.getConn().send(ConnectionUtils.requeue(msg.getId(), newDelay));
+			} catch (NSQException e) {
+				// TODO kill the connection
+			}
 		}
 	}
 	
 	public void finishMessage(Message msg){
-		msg.getConn().send(ConnectionUtils.finish(msg.getId()));
+		try {
+			msg.getConn().send(ConnectionUtils.finish(msg.getId()));
+		} catch (NSQException e) {
+			// TODO kill the connection
+		}
 	}
 
 }

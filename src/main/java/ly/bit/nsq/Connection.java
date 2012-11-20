@@ -1,5 +1,7 @@
 package ly.bit.nsq;
 
+import ly.bit.nsq.exceptions.NSQException;
+
 
 /**
  * @author dan
@@ -21,7 +23,7 @@ public abstract class Connection {
 		this.reader.addMessageForProcessing(message);
 	}
 	
-	public abstract void send(String command);
+	public abstract void send(String command) throws NSQException;
 	
 	public Message decode(byte[] data) {
 		// TODO: load fields from message data. see https://github.com/bitly/pynsq/blob/master/nsq/nsq.py#L24
