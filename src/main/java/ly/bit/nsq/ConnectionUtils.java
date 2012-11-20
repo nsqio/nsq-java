@@ -2,14 +2,18 @@ package ly.bit.nsq;
 
 public final class ConnectionUtils {
 	private static final char NL = '\n';
+	public static final String MAGIC_V2 = "  V2";
 
 	protected static String command(String cmd, String... params){
-		StringBuilder commandBuilder = new StringBuilder(cmd + " ");
+		StringBuilder commandBuilder = new StringBuilder(cmd);
 		for(String param : params){
+			commandBuilder.append(" ");
 			commandBuilder.append(param);
 		}
 		commandBuilder.append(NL);
-		return commandBuilder.toString();
+		String out = commandBuilder.toString();
+		System.out.println(out);
+		return out;
 	}
 	
 	public static String subscribe(String topic, String channel, String shortId, String longId){

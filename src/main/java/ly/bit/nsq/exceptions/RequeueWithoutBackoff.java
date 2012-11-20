@@ -9,4 +9,8 @@ package ly.bit.nsq.exceptions;
  */
 public class RequeueWithoutBackoff extends NSQException {
 
+	public RequeueWithoutBackoff(Throwable t) {
+		super(t);
+	}
+
 }

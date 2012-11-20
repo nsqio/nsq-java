@@ -1,5 +1,10 @@
 package ly.bit.nsq;
 
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+
 import ly.bit.nsq.exceptions.NSQException;
 
 
@@ -18,16 +23,29 @@ import ly.bit.nsq.exceptions.NSQException;
 public abstract class Connection {
 	
 	protected NSQReader reader;
+	protected String host;
+	protected int port;
 	
 	public void messageReceivedCallback(Message message){
 		this.reader.addMessageForProcessing(message);
 	}
 	
 	public abstract void send(String command) throws NSQException;
+	public abstract void connect() throws NSQException;
 	
-	public Message decode(byte[] data) {
-		// TODO: load fields from message data. see https://github.com/bitly/pynsq/blob/master/nsq/nsq.py#L24
-		return null;
+	public Message decodeMesage(byte[] data) throws NSQException {
+		DataInputStream ds = new DataInputStream(new ByteArrayInputStream(data));
+		try {
+			long timestamp = ds.readLong(); // 8 bytes
+			short attempts = ds.readShort(); // 2 bytes
+			byte[] id = new byte[16];
+			ds.read(id);
+			byte[] body = new byte[data.length - 26];
+			ds.read(body);
+			return new Message(id, body, timestamp, attempts, this);
+		} catch (IOException e) {
+			throw new NSQException(e);
+		}
 	}
 
 }

@@ -8,6 +8,12 @@ public class SyncReader extends NSQReader {
 	
 	private SyncHandler handler;
 	
+	public SyncReader(SyncHandler handler) {
+		super();
+		this.handler = handler;
+		this.init();
+	}
+
 	private class SyncMessageRunnable implements Runnable {
 		
 		public SyncMessageRunnable(Message msg) {
@@ -41,5 +47,4 @@ public class SyncReader extends NSQReader {
 	protected Runnable makeRunnableFromMessage(Message msg) {
 		return new SyncMessageRunnable(msg);
 	}
-
 }

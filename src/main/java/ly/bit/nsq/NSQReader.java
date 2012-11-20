@@ -1,5 +1,7 @@
 package ly.bit.nsq;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import ly.bit.nsq.exceptions.NSQException;
@@ -10,7 +12,13 @@ public abstract class NSQReader {
 	protected int requeueDelay;
 	protected int maxRetries;
 	
-	protected ThreadPoolExecutor executor;
+	protected ExecutorService executor;
+	
+	public void init(){
+		this.requeueDelay = 50;
+		this.maxRetries = 2;
+		this.executor = Executors.newSingleThreadExecutor();
+	}
 	
 	protected abstract Runnable makeRunnableFromMessage(Message msg);
 		
