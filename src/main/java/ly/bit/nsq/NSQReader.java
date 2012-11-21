@@ -36,6 +36,7 @@ public abstract class NSQReader {
 			try {
 				msg.getConn().send(ConnectionUtils.requeue(msg.getId(), newDelay));
 			} catch (NSQException e) {
+				e.printStackTrace();
 				// TODO kill the connection
 			}
 		}
@@ -45,6 +46,7 @@ public abstract class NSQReader {
 		try {
 			msg.getConn().send(ConnectionUtils.finish(msg.getId()));
 		} catch (NSQException e) {
+			e.printStackTrace();
 			// TODO kill the connection
 		}
 	}

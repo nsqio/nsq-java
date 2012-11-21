@@ -4,6 +4,8 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import ly.bit.nsq.exceptions.NSQException;
 
@@ -25,8 +27,21 @@ public abstract class Connection {
 	protected NSQReader reader;
 	protected String host;
 	protected int port;
+	protected AtomicInteger readyCount;
+	protected int maxInFlight; // TODO maybe replace this with something from reader, or else just set it from there
 	
 	public void messageReceivedCallback(Message message){
+		int curReady = this.readyCount.decrementAndGet();
+		if (curReady < Math.max(2, 0.25 * (float)this.maxInFlight)){
+			// should send ready now
+			try {
+				this.send(ConnectionUtils.ready(maxInFlight));
+			} catch (NSQException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			this.readyCount.set(maxInFlight);
+		}
 		this.reader.addMessageForProcessing(message);
 	}
 	
@@ -48,4 +63,28 @@ public abstract class Connection {
 		}
 	}
 
+	public void handleResponse(byte[] response) throws NSQException {
+		DataInputStream ds = new DataInputStream(new ByteArrayInputStream(response));
+		try {
+			FrameType ft = FrameType.fromInt(ds.readInt());
+			switch (ft) {
+			case FRAMETYPERESPONSE:
+				// do nothing?
+				break;
+			case FRAMETYPEMESSAGE:
+				byte[] messageBytes = Arrays.copyOfRange(response, 4, response.length); 
+				Message msg = this.decodeMesage(messageBytes);
+				this.messageReceivedCallback(msg);
+				break;
+			case FRAMETYPEERROR:
+				String errMsg = new String(Arrays.copyOfRange(response, 4, response.length));
+				throw new NSQException(errMsg);
+			default:
+				// handle the error...
+				throw new NSQException("Invalid frame type!");
+			}
+		} catch (IOException e) {
+			throw new NSQException(e);
+		}
+	}
 }
