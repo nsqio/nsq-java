@@ -8,10 +8,10 @@ public class SyncReader extends NSQReader {
 	
 	private SyncHandler handler;
 	
-	public SyncReader(SyncHandler handler) {
+	public SyncReader(String topic, String channel, SyncHandler handler) {
 		super();
 		this.handler = handler;
-		this.init();
+		this.init(topic, channel);
 	}
 
 	private class SyncMessageRunnable implements Runnable {

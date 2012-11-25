@@ -11,3 +11,6 @@ maintain an external counter, which is fine.
 Dennis also counsels that I look into using Callable instead of Runnable... That will return a Future that we can act on.
 I don't think I want that, because I want whoever submitted that task to be able to move on. Only catch is that I do need to know
 which connection that message came from.
+
+*** Need to substantially re-work the way we are reading responses, so as to only block on reading the first 4 bytes..
+possible that what we're doing currently works, but not likely

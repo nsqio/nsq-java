@@ -5,6 +5,7 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import ly.bit.nsq.exceptions.NSQException;
@@ -29,6 +30,11 @@ public abstract class Connection {
 	protected int port;
 	protected AtomicInteger readyCount;
 	protected int maxInFlight; // TODO maybe replace this with something from reader, or else just set it from there
+	protected AtomicBoolean closed = new AtomicBoolean(false);
+	
+	protected void init(){
+		this.readyCount = new AtomicInteger(); // will init to 0, but that is fine on startup
+	}
 	
 	public void messageReceivedCallback(Message message){
 		int curReady = this.readyCount.decrementAndGet();
@@ -47,6 +53,8 @@ public abstract class Connection {
 	
 	public abstract void send(String command) throws NSQException;
 	public abstract void connect() throws NSQException;
+	public abstract void readForever() throws NSQException;
+	public abstract void close();
 	
 	public Message decodeMesage(byte[] data) throws NSQException {
 		DataInputStream ds = new DataInputStream(new ByteArrayInputStream(data));
@@ -84,7 +92,13 @@ public abstract class Connection {
 				throw new NSQException("Invalid frame type!");
 			}
 		} catch (IOException e) {
+			// this isn't a *real* IOException, as we are only reading from a byte array.
+			// if this were to be triggered, it would mean that there was a malformed message
 			throw new NSQException(e);
 		}
+	}
+	
+	public String toString(){
+		return this.host + ":" + this.port;
 	}
 }

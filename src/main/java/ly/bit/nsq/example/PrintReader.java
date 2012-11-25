@@ -1,8 +1,6 @@
 package ly.bit.nsq.example;
 
-import ly.bit.nsq.ConnectionUtils;
 import ly.bit.nsq.Message;
-import ly.bit.nsq.SyncConnection;
 import ly.bit.nsq.exceptions.NSQException;
 import ly.bit.nsq.sync.SyncHandler;
 import ly.bit.nsq.sync.SyncReader;
@@ -16,18 +14,17 @@ public class PrintReader implements SyncHandler {
 
 	public static void main(String... args){
 		SyncHandler sh = new PrintReader();
-		SyncReader reader = new SyncReader(sh);
-		SyncConnection conn = new SyncConnection("bitly.org", 4150, reader);
-		try{
-			conn.connect();
-			conn.send(ConnectionUtils.subscribe("test", "java", "df", "danielhfrank"));
-			for(int i = 0; i < 10; i++){
-				conn.send(ConnectionUtils.ready(1));
-				byte[] response = conn.readResponse();
-				conn.handleResponse(response);	
-			}
-			
-		}catch(NSQException e){
+		SyncReader reader = new SyncReader("test", "java", sh);
+		try {
+			reader.connectToNsqd("bitly.org", 4150);
+		} catch (NSQException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			Thread.sleep(5000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}

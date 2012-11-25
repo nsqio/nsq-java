@@ -22,6 +22,7 @@ public class SyncConnection extends Connection {
 		this.reader = reader;
 		this.port = port;
 		this.sock = new Socket();
+		this.init();
 	}
 
 	@Override
@@ -60,6 +61,43 @@ public class SyncConnection extends Connection {
 			this.inputStream = new BufferedInputStream(this.sock.getInputStream());
 		}catch(IOException e){
 			throw new NSQException(e);
+		}
+	}
+
+	@Override
+	public void readForever() {
+		class ReadThis implements Runnable {
+			public void run() {
+				while(closed.get() != true){
+					byte[] response;
+					try {
+						response = readResponse();
+					} catch (NSQException e) {
+						// Assume this meant that we couldn't read somehow, should close the connection
+						closed.set(true);
+						break;
+					}
+					try {
+						handleResponse(response);
+					} catch (NSQException e) {
+						// malformed message or something...
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+		Thread t = new Thread(new ReadThis(), this.toString());
+		t.start();
+	}
+
+	@Override
+	public void close() {
+		this.closed.set(true);
+		try {
+			this.sock.close();
+		} catch (IOException e) {
+			// whatever, we're not doing anything with this anymore
+			e.printStackTrace();
 		}
 	}
 
