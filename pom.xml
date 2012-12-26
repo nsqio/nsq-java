@@ -4,4 +4,22 @@
   <artifactId>nsq</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <name>Java NSQ Client</name>
+  <dependencies>
+  	<dependency>
+  		<groupId>org.quartz-scheduler</groupId>
+  		<artifactId>quartz</artifactId>
+  		<version>2.1.6</version>
+  	</dependency>
+  <dependency>
+   <groupId>org.codehaus.jackson</groupId>
+   <artifactId>jackson-mapper-asl</artifactId>
+   <version>1.9.11</version>
+  </dependency>
+  </dependencies>
+   <repositories>
+  <repository>
+   <id>codehaus-snapshots</id>
+   <url>http://snapshots.repository.codehaus.org</url>
+  </repository>
+ </repositories>
 </project>
