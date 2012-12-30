@@ -8,6 +8,10 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 
+import org.quartz.Job;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
+
 public class SyncLookupd extends AbstractLookupd {
 
 	@Override
@@ -21,8 +25,7 @@ public class SyncLookupd extends AbstractLookupd {
 		try {
 			InputStream is = url.openStream();
 			BufferedReader br = new BufferedReader(new InputStreamReader(is));
-			String resp = br.readLine();
-			return parseResponseForProducers(resp);
+			return parseResponseForProducers(br);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -30,5 +33,8 @@ public class SyncLookupd extends AbstractLookupd {
 		return null;
 	}
 
+	public SyncLookupd(String addr){
+		this.addr = addr;
+	}
 
 }

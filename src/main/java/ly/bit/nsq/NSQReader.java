@@ -2,12 +2,24 @@ package ly.bit.nsq;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
+
+import org.quartz.Job;
+import org.quartz.JobBuilder;
+import org.quartz.JobDetail;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
+import org.quartz.SimpleScheduleBuilder;
+import org.quartz.Trigger;
+import org.quartz.TriggerBuilder;
 
 import ly.bit.nsq.exceptions.NSQException;
+import ly.bit.nsq.lookupd.AbstractLookupd;
 
 
 public abstract class NSQReader {
@@ -24,6 +36,7 @@ public abstract class NSQReader {
 	protected ExecutorService executor;
 	
 	protected ConcurrentHashMap<String, Connection> connections;
+	protected ConcurrentHashMap<String, AbstractLookupd> lookupdConnections;
 	
 	public void init(String topic, String channel){
 		this.requeueDelay = 50;
@@ -88,6 +101,61 @@ public abstract class NSQReader {
 		conn.send(ConnectionUtils.subscribe(this.topic, this.channel, this.shortHostname, this.hostname));
 		conn.send(ConnectionUtils.ready(conn.maxInFlight));
 		conn.readForever();
+	}
+	
+	// lookupd stuff
+	
+	public Scheduler getLookupdScheduler() {
+		// lazily create and return the scheduler
+		return null;
+	}
+	
+	public abstract AbstractLookupd makeLookupd(String addr);
+	
+	public synchronized void addLookupd(String addr) {
+		if (this.lookupdConnections.keySet().contains(addr))
+			return;
+		AbstractLookupd lookupd = this.makeLookupd(addr);
+		this.lookupdConnections.put(addr, lookupd);
+        Trigger trigger = TriggerBuilder.newTrigger()
+                .withIdentity("lookupd-" + addr, "lookupd-triggers")
+                .startNow()
+                .withSchedule(SimpleScheduleBuilder.simpleSchedule()
+                        .withIntervalInSeconds(40)
+                        .repeatForever())            
+                .build();
+        JobDetail lookupdJob = JobBuilder.newJob(SyncLookupdJob.class)
+                .withIdentity("lookupd-" + addr, "lookupd-jobs")
+        		.usingJobData("lookupdAddess", addr)
+        		.build();
+        try {
+			this.getLookupdScheduler().scheduleJob(lookupdJob, trigger);
+		} catch (SchedulerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	private class SyncLookupdJob implements Job {
+
+		public void execute(JobExecutionContext context)
+				throws JobExecutionException {
+			String addr = context.getMergedJobDataMap().getString("lookupdAddress");
+			AbstractLookupd lookupd = lookupdConnections.get(addr);
+			List<String> producers = lookupd.query(topic);
+			for(String producer : producers) {
+				String[] components = producer.split(":");
+				String nsqdAddress = components[0];
+				int nsqdPort = Integer.parseInt(components[1]);
+				try {
+					connectToNsqd(nsqdAddress, nsqdPort);
+				} catch (NSQException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
+		
 	}
 
 }

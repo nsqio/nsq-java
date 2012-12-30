@@ -3,6 +3,8 @@ package ly.bit.nsq.sync;
 import ly.bit.nsq.Message;
 import ly.bit.nsq.NSQReader;
 import ly.bit.nsq.exceptions.RequeueWithoutBackoff;
+import ly.bit.nsq.lookupd.AbstractLookupd;
+import ly.bit.nsq.lookupd.SyncLookupd;
 
 public class SyncReader extends NSQReader {
 	
@@ -46,5 +48,10 @@ public class SyncReader extends NSQReader {
 	@Override
 	protected Runnable makeRunnableFromMessage(Message msg) {
 		return new SyncMessageRunnable(msg);
+	}
+
+	@Override
+	public AbstractLookupd makeLookupd(String addr) {
+		return new SyncLookupd(addr);
 	}
 }
