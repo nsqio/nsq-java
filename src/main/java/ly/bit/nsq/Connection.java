@@ -43,8 +43,10 @@ public abstract class Connection {
 			try {
 				this.send(ConnectionUtils.ready(maxInFlight));
 			} catch (NSQException e) {
-				// TODO Auto-generated catch block
+				// broken conn
+				this.close();
 				e.printStackTrace();
+				return;
 			}
 			this.readyCount.set(maxInFlight);
 		}

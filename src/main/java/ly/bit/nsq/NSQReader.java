@@ -72,7 +72,7 @@ public abstract class NSQReader {
 				msg.getConn().send(ConnectionUtils.requeue(msg.getId(), newDelay));
 			} catch (NSQException e) {
 				e.printStackTrace();
-				// TODO kill the connection
+				msg.getConn().close();
 			}
 		}
 	}
@@ -82,19 +82,18 @@ public abstract class NSQReader {
 			msg.getConn().send(ConnectionUtils.finish(msg.getId()));
 		} catch (NSQException e) {
 			e.printStackTrace();
-			// TODO kill the connection
+			
 		}
 	}
 	
 	public void connectToNsqd(String address, int port) throws NSQException{
 		Connection conn = new SyncConnection(address, port, this);
 		String connId = conn.toString();
-		if(this.connections.keySet().contains(connId)){
+		Connection stored = this.connections.putIfAbsent(connId, conn);
+		if(stored != null){
 			return;
 		}
-		// TODO: Would like to be able to configure this a little better
 		conn.connect();
-		this.connections.put(connId, conn);
 		for(Connection cxn : this.connections.values()){
 			cxn.maxInFlight = (int) Math.ceil(this.maxInFlight / (float)this.connections.size());
 		}
@@ -102,6 +101,7 @@ public abstract class NSQReader {
 		conn.send(ConnectionUtils.ready(conn.maxInFlight));
 		conn.readForever();
 	}
+	
 	
 	// lookupd stuff
 	

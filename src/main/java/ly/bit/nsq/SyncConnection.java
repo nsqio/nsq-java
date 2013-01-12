@@ -92,13 +92,17 @@ public class SyncConnection extends Connection {
 
 	@Override
 	public void close() {
-		this.closed.set(true);
+		boolean prev = this.closed.getAndSet(true);
+		if(prev == true){
+			return;
+		}
 		try {
 			this.sock.close();
 		} catch (IOException e) {
 			// whatever, we're not doing anything with this anymore
 			e.printStackTrace();
 		}
+		this.reader.connections.remove(this.toString());
 	}
 
 }

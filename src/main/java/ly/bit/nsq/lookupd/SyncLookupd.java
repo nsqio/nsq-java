@@ -8,10 +8,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 
-import org.quartz.Job;
-import org.quartz.JobExecutionContext;
-import org.quartz.JobExecutionException;
-
 public class SyncLookupd extends AbstractLookupd {
 
 	@Override
