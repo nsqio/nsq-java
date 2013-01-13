@@ -74,7 +74,7 @@ public class SyncConnection extends Connection {
 						response = readResponse();
 					} catch (NSQException e) {
 						// Assume this meant that we couldn't read somehow, should close the connection
-						closed.set(true);
+						close();
 						break;
 					}
 					try {
@@ -96,6 +96,7 @@ public class SyncConnection extends Connection {
 		if(prev == true){
 			return;
 		}
+		System.out.println("Closing connection " + this.toString());
 		try {
 			this.sock.close();
 		} catch (IOException e) {

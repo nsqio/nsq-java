@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.quartz.Job;
 import org.quartz.JobBuilder;
@@ -17,9 +18,11 @@ import org.quartz.SchedulerException;
 import org.quartz.SimpleScheduleBuilder;
 import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
+import org.quartz.impl.StdSchedulerFactory;
 
 import ly.bit.nsq.exceptions.NSQException;
 import ly.bit.nsq.lookupd.AbstractLookupd;
+import ly.bit.nsq.lookupd.SyncLookupdJob;
 
 
 public abstract class NSQReader {
@@ -38,6 +41,10 @@ public abstract class NSQReader {
 	protected ConcurrentHashMap<String, Connection> connections;
 	protected ConcurrentHashMap<String, AbstractLookupd> lookupdConnections;
 	
+	private Scheduler scheduler;
+	
+	public static final ConcurrentHashMap<String, NSQReader> readerIndex = new ConcurrentHashMap<String, NSQReader>();
+	
 	public void init(String topic, String channel){
 		this.requeueDelay = 50;
 		this.maxRetries = 2;
@@ -53,6 +60,37 @@ public abstract class NSQReader {
 		}
 		String[] hostParts = this.hostname.split("\\.");
 		this.shortHostname = hostParts[0];
+		
+		this.lookupdConnections = new ConcurrentHashMap<String, AbstractLookupd>();
+		try {
+			this.scheduler = StdSchedulerFactory.getDefaultScheduler();
+			this.scheduler.start();
+		} catch (SchedulerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		// register action for shutdown
+		Runtime.getRuntime().addShutdownHook(new Thread(){
+			@Override
+			public void run(){
+				shutdown();
+			}
+		});
+		readerIndex.put(this.toString(), this);
+	}
+	
+	public void shutdown(){
+		System.out.println("Received signal to shut down");
+		try {
+			this.scheduler.shutdown();
+		} catch (SchedulerException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		for(Connection conn: this.connections.values()){
+			conn.close();
+		}
 	}
 	
 	protected abstract Runnable makeRunnableFromMessage(Message msg);
@@ -82,7 +120,7 @@ public abstract class NSQReader {
 			msg.getConn().send(ConnectionUtils.finish(msg.getId()));
 		} catch (NSQException e) {
 			e.printStackTrace();
-			
+			msg.getConn().close();
 		}
 	}
 	
@@ -106,17 +144,17 @@ public abstract class NSQReader {
 	// lookupd stuff
 	
 	public Scheduler getLookupdScheduler() {
-		// lazily create and return the scheduler
-		return null;
+		return this.scheduler;
 	}
 	
 	public abstract AbstractLookupd makeLookupd(String addr);
 	
-	public synchronized void addLookupd(String addr) {
-		if (this.lookupdConnections.keySet().contains(addr))
-			return;
+	public void addLookupd(String addr) {
 		AbstractLookupd lookupd = this.makeLookupd(addr);
-		this.lookupdConnections.put(addr, lookupd);
+		AbstractLookupd stored = this.lookupdConnections.putIfAbsent(addr, lookupd);
+		if(stored != null){
+			return;
+		}
         Trigger trigger = TriggerBuilder.newTrigger()
                 .withIdentity("lookupd-" + addr, "lookupd-triggers")
                 .startNow()
@@ -126,7 +164,8 @@ public abstract class NSQReader {
                 .build();
         JobDetail lookupdJob = JobBuilder.newJob(SyncLookupdJob.class)
                 .withIdentity("lookupd-" + addr, "lookupd-jobs")
-        		.usingJobData("lookupdAddess", addr)
+        		.usingJobData("lookupdAddress", addr)
+        		.usingJobData("reader", this.toString())
         		.build();
         try {
 			this.getLookupdScheduler().scheduleJob(lookupdJob, trigger);
@@ -136,26 +175,19 @@ public abstract class NSQReader {
 		}
 	}
 	
-	private class SyncLookupdJob implements Job {
-
-		public void execute(JobExecutionContext context)
-				throws JobExecutionException {
-			String addr = context.getMergedJobDataMap().getString("lookupdAddress");
-			AbstractLookupd lookupd = lookupdConnections.get(addr);
-			List<String> producers = lookupd.query(topic);
-			for(String producer : producers) {
-				String[] components = producer.split(":");
-				String nsqdAddress = components[0];
-				int nsqdPort = Integer.parseInt(components[1]);
-				try {
-					connectToNsqd(nsqdAddress, nsqdPort);
-				} catch (NSQException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-		}
-		
+	// -----
+	
+	public String toString(){
+		return "Reader<" + this.topic + ", " + this.channel + ">";
 	}
+
+	public String getTopic() {
+		return topic;
+	}
+
+	public ConcurrentHashMap<String, AbstractLookupd> getLookupdConnections() {
+		return lookupdConnections;
+	}
+
 
 }

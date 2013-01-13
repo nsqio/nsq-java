@@ -14,13 +14,14 @@ public class PrintReader implements SyncHandler {
 
 	public static void main(String... args){
 		SyncHandler sh = new PrintReader();
-		SyncReader reader = new SyncReader("test", "java", sh);
-		try {
-			reader.connectToNsqd("bitly.org", 4150);
-		} catch (NSQException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		SyncReader reader = new SyncReader("decodes", "java", sh);
+//		try {
+//			reader.connectToNsqd("bitly.org", 4150);
+//		} catch (NSQException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+		reader.addLookupd("http://bitly.org:4161");
 		try {
 			Thread.sleep(5000);
 		} catch (InterruptedException e) {

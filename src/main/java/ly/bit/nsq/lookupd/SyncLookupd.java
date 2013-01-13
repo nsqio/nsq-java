@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.LinkedList;
 import java.util.List;
 
 public class SyncLookupd extends AbstractLookupd {
@@ -14,7 +15,7 @@ public class SyncLookupd extends AbstractLookupd {
 	public List<String> query(String topic) {
 		URL url = null;
 		try {
-			url = new URL(this.addr);
+			url = new URL(this.addr + "/lookup?topic=" + topic);
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
 		}
@@ -26,7 +27,7 @@ public class SyncLookupd extends AbstractLookupd {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		return null;
+		return new LinkedList<String>();
 	}
 
 	public SyncLookupd(String addr){
