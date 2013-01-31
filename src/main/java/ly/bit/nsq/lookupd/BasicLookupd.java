@@ -9,7 +9,7 @@ import java.net.URL;
 import java.util.LinkedList;
 import java.util.List;
 
-public class SyncLookupd extends AbstractLookupd {
+public class BasicLookupd extends AbstractLookupd {
 
 	@Override
 	public List<String> query(String topic) {
@@ -30,7 +30,7 @@ public class SyncLookupd extends AbstractLookupd {
 		return new LinkedList<String>();
 	}
 
-	public SyncLookupd(String addr){
+	public BasicLookupd(String addr){
 		this.addr = addr;
 	}
 

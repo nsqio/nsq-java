@@ -15,6 +15,10 @@ public abstract class AbstractLookupd {
 	
 	protected String addr;
 
+	public String getAddr() {
+		return addr;
+	}
+
 	/**
 	 * This should handle making a request to lookupd, and returning which producers match the channel we want
 	 * Netty presumably can wait on the future or something, who knows...

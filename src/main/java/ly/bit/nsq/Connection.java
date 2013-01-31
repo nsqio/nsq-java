@@ -9,6 +9,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import ly.bit.nsq.exceptions.NSQException;
+import ly.bit.nsq.util.ConnectionUtils;
+import ly.bit.nsq.util.FrameType;
 
 
 /**
@@ -28,13 +30,10 @@ public abstract class Connection {
 	protected NSQReader reader;
 	protected String host;
 	protected int port;
-	protected AtomicInteger readyCount;
+	protected AtomicInteger readyCount = new AtomicInteger();
 	protected int maxInFlight; // TODO maybe replace this with something from reader, or else just set it from there
 	protected AtomicBoolean closed = new AtomicBoolean(false);
 	
-	protected void init(){
-		this.readyCount = new AtomicInteger(); // will init to 0, but that is fine on startup
-	}
 	
 	public void messageReceivedCallback(Message message){
 		int curReady = this.readyCount.decrementAndGet();
@@ -53,6 +52,7 @@ public abstract class Connection {
 		this.reader.addMessageForProcessing(message);
 	}
 	
+	public abstract void init(String host, int port, NSQReader reader);
 	public abstract void send(String command) throws NSQException;
 	public abstract void connect() throws NSQException;
 	public abstract void readForever() throws NSQException;

@@ -1,5 +1,6 @@
 package ly.bit.nsq;
 
+
 public class Message {
 	
 	public Message(byte[] id, byte[] body, long timestamp, short attempts, Connection conn) {

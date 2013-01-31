@@ -1,4 +1,4 @@
-package ly.bit.nsq;
+package ly.bit.nsq.util;
 
 import ly.bit.nsq.exceptions.NSQException;
 

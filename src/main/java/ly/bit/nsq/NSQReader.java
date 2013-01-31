@@ -1,5 +1,6 @@
 package ly.bit.nsq;
 
+import java.lang.reflect.Constructor;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
@@ -7,6 +8,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import javax.management.ReflectionException;
 
 import org.quartz.Job;
 import org.quartz.JobBuilder;
@@ -22,7 +25,8 @@ import org.quartz.impl.StdSchedulerFactory;
 
 import ly.bit.nsq.exceptions.NSQException;
 import ly.bit.nsq.lookupd.AbstractLookupd;
-import ly.bit.nsq.lookupd.SyncLookupdJob;
+import ly.bit.nsq.lookupd.BasicLookupdJob;
+import ly.bit.nsq.util.ConnectionUtils;
 
 
 public abstract class NSQReader {
@@ -38,6 +42,8 @@ public abstract class NSQReader {
 	
 	protected ExecutorService executor;
 	
+	protected Class<? extends Connection> connClass;
+	
 	protected ConcurrentHashMap<String, Connection> connections;
 	protected ConcurrentHashMap<String, AbstractLookupd> lookupdConnections;
 	
@@ -49,7 +55,7 @@ public abstract class NSQReader {
 		this.requeueDelay = 50;
 		this.maxRetries = 2;
 		this.maxInFlight = 1;
-		this.executor = Executors.newSingleThreadExecutor();
+		this.executor = Executors.newSingleThreadExecutor(); // TODO can be passed by caller
 		this.connections = new ConcurrentHashMap<String, Connection>();
 		this.topic = topic;
 		this.channel = channel;
@@ -61,6 +67,7 @@ public abstract class NSQReader {
 		String[] hostParts = this.hostname.split("\\.");
 		this.shortHostname = hostParts[0];
 		
+		this.connClass = BasicConnection.class; // TODO can be passed by caller
 		this.lookupdConnections = new ConcurrentHashMap<String, AbstractLookupd>();
 		try {
 			this.scheduler = StdSchedulerFactory.getDefaultScheduler();
@@ -125,7 +132,15 @@ public abstract class NSQReader {
 	}
 	
 	public void connectToNsqd(String address, int port) throws NSQException{
-		Connection conn = new SyncConnection(address, port, this);
+		Connection conn;
+		try {
+			conn = this.connClass.newInstance();
+		} catch (InstantiationException e) {
+			throw new NSQException("Connection implementation must have a default constructor");
+		} catch (IllegalAccessException e) {
+			throw new NSQException("Connection implementation's default constructor must be visible");
+		}
+		conn.init(address, port, this);
 		String connId = conn.toString();
 		Connection stored = this.connections.putIfAbsent(connId, conn);
 		if(stored != null){
@@ -147,10 +162,9 @@ public abstract class NSQReader {
 		return this.scheduler;
 	}
 	
-	public abstract AbstractLookupd makeLookupd(String addr);
 	
-	public void addLookupd(String addr) {
-		AbstractLookupd lookupd = this.makeLookupd(addr);
+	public void addLookupd(AbstractLookupd lookupd) {
+		String addr = lookupd.getAddr();
 		AbstractLookupd stored = this.lookupdConnections.putIfAbsent(addr, lookupd);
 		if(stored != null){
 			return;
@@ -162,7 +176,7 @@ public abstract class NSQReader {
                         .withIntervalInSeconds(40)
                         .repeatForever())            
                 .build();
-        JobDetail lookupdJob = JobBuilder.newJob(SyncLookupdJob.class)
+        JobDetail lookupdJob = JobBuilder.newJob(BasicLookupdJob.class)
                 .withIdentity("lookupd-" + addr, "lookupd-jobs")
         		.usingJobData("lookupdAddress", addr)
         		.usingJobData("reader", this.toString())

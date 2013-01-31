@@ -1,4 +1,4 @@
-package ly.bit.nsq;
+package ly.bit.nsq.util;
 
 public final class ConnectionUtils {
 	private static final char NL = '\n';

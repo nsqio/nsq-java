@@ -11,18 +11,18 @@ import java.net.Socket;
 import java.util.Arrays;
 
 import ly.bit.nsq.exceptions.NSQException;
+import ly.bit.nsq.util.ConnectionUtils;
 
-public class SyncConnection extends Connection {
+public class BasicConnection extends Connection {
 	
 	private Socket sock;
 	private InputStream inputStream;
 	
-	public SyncConnection(String host, int port, NSQReader reader){
+	public void init(String host, int port, NSQReader reader){
 		this.host = host;
 		this.reader = reader;
 		this.port = port;
 		this.sock = new Socket();
-		this.init();
 	}
 
 	@Override

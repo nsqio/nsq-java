@@ -1,24 +1,24 @@
-package ly.bit.nsq.sync;
+package ly.bit.nsq.syncresponse;
 
 import ly.bit.nsq.Message;
 import ly.bit.nsq.NSQReader;
 import ly.bit.nsq.exceptions.RequeueWithoutBackoff;
 import ly.bit.nsq.lookupd.AbstractLookupd;
-import ly.bit.nsq.lookupd.SyncLookupd;
+import ly.bit.nsq.lookupd.BasicLookupd;
 
-public class SyncReader extends NSQReader {
+public class SyncResponseReader extends NSQReader {
 	
-	private SyncHandler handler;
+	private SyncResponseHandler handler;
 	
-	public SyncReader(String topic, String channel, SyncHandler handler) {
+	public SyncResponseReader(String topic, String channel, SyncResponseHandler handler) {
 		super();
 		this.handler = handler;
 		this.init(topic, channel);
 	}
 
-	private class SyncMessageRunnable implements Runnable {
+	private class SyncResponseMessageRunnable implements Runnable {
 		
-		public SyncMessageRunnable(Message msg) {
+		public SyncResponseMessageRunnable(Message msg) {
 			super();
 			this.msg = msg;
 		}
@@ -47,11 +47,7 @@ public class SyncReader extends NSQReader {
 
 	@Override
 	protected Runnable makeRunnableFromMessage(Message msg) {
-		return new SyncMessageRunnable(msg);
+		return new SyncResponseMessageRunnable(msg);
 	}
 
-	@Override
-	public AbstractLookupd makeLookupd(String addr) {
-		return new SyncLookupd(addr);
-	}
 }

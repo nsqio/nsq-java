@@ -1,4 +1,4 @@
-package ly.bit.nsq.sync;
+package ly.bit.nsq.syncresponse;
 
 import ly.bit.nsq.Message;
 import ly.bit.nsq.exceptions.NSQException;
@@ -14,7 +14,7 @@ import ly.bit.nsq.exceptions.NSQException;
  * can be thrown to trigger an immediate requeue.
  *
  */
-public interface SyncHandler {
+public interface SyncResponseHandler {
 	
 	public boolean handleMessage(Message msg) throws NSQException;
 
