@@ -11,6 +11,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import ly.bit.nsq.exceptions.NSQException;
 import ly.bit.nsq.util.ConnectionUtils;
 import ly.bit.nsq.util.FrameType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -26,6 +28,7 @@ import ly.bit.nsq.util.FrameType;
  *
  */
 public abstract class Connection {
+	private static final Logger log = LoggerFactory.getLogger(Connection.class);
 	
 	protected NSQReader reader;
 	protected String host;
@@ -44,7 +47,7 @@ public abstract class Connection {
 			} catch (NSQException e) {
 				// broken conn
 				this.close();
-				e.printStackTrace();
+				log.error("Broken connection: ", e);
 				return;
 			}
 			this.readyCount.set(maxInFlight);

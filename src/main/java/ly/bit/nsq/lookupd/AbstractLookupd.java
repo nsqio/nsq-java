@@ -9,9 +9,12 @@ import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public abstract class AbstractLookupd {
+	private static final Logger log = LoggerFactory.getLogger(AbstractLookupd.class);
 	
 	protected String addr;
 
@@ -39,14 +42,11 @@ public abstract class AbstractLookupd {
 				 outputs.add(addr + ":" + tcpPort);
 			 }
 		} catch (JsonParseException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			log.error("Error parsing json from lookupd:", e);
 		} catch (JsonMappingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			log.error("Error mapping json from lookupd:", e);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			log.error("Error reading response from lookupd:", e);
 		}
 		return outputs;
 	}
