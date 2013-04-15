@@ -54,5 +54,4 @@ public class Message {
 		return conn;
 	}
 
-
 }
