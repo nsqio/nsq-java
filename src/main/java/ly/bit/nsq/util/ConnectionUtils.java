@@ -1,6 +1,10 @@
 package ly.bit.nsq.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public final class ConnectionUtils {
+	private static final Logger log = LoggerFactory.getLogger(ConnectionUtils.class);
 	private static final char NL = '\n';
 	public static final String MAGIC_V2 = "  V2";
 
@@ -12,7 +16,7 @@ public final class ConnectionUtils {
 		}
 		commandBuilder.append(NL);
 		String out = commandBuilder.toString();
-		System.out.println(out);
+		log.debug("Cmd: {}", out);
 		return out;
 	}
 	

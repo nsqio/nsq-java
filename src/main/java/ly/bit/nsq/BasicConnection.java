@@ -12,8 +12,11 @@ import java.util.Arrays;
 
 import ly.bit.nsq.exceptions.NSQException;
 import ly.bit.nsq.util.ConnectionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BasicConnection extends Connection {
+	private static final Logger log = LoggerFactory.getLogger(BasicConnection.class);
 	
 	private Socket sock;
 	private InputStream inputStream;
@@ -81,7 +84,7 @@ public class BasicConnection extends Connection {
 						handleResponse(response);
 					} catch (NSQException e) {
 						// malformed message or something...
-						e.printStackTrace();
+						log.error("Message error: ", e);
 					}
 				}
 			}
@@ -96,12 +99,12 @@ public class BasicConnection extends Connection {
 		if(prev == true){
 			return;
 		}
-		System.out.println("Closing connection " + this.toString());
+		log.info("Closing connection {}", this.toString());
 		try {
 			this.sock.close();
 		} catch (IOException e) {
 			// whatever, we're not doing anything with this anymore
-			e.printStackTrace();
+			log.error("Exception closing connection: ", e);
 		}
 		this.reader.connections.remove(this.toString());
 	}

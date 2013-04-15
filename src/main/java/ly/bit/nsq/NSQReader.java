@@ -1,35 +1,23 @@
 package ly.bit.nsq;
 
-import java.lang.reflect.Constructor;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import javax.management.ReflectionException;
-
-import org.quartz.Job;
-import org.quartz.JobBuilder;
-import org.quartz.JobDetail;
-import org.quartz.JobExecutionContext;
-import org.quartz.JobExecutionException;
-import org.quartz.Scheduler;
-import org.quartz.SchedulerException;
-import org.quartz.SimpleScheduleBuilder;
-import org.quartz.Trigger;
-import org.quartz.TriggerBuilder;
-import org.quartz.impl.StdSchedulerFactory;
+import java.util.concurrent.ScheduledExecutorService;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import ly.bit.nsq.exceptions.NSQException;
 import ly.bit.nsq.lookupd.AbstractLookupd;
 import ly.bit.nsq.lookupd.BasicLookupdJob;
 import ly.bit.nsq.util.ConnectionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public abstract class NSQReader {
+	private static final Logger log = LoggerFactory.getLogger(NSQReader.class);
 	
 	protected int requeueDelay;
 	protected int maxRetries;
@@ -46,9 +34,9 @@ public abstract class NSQReader {
 	
 	protected ConcurrentHashMap<String, Connection> connections;
 	protected ConcurrentHashMap<String, AbstractLookupd> lookupdConnections;
-	
-	private Scheduler scheduler;
-	
+
+    private ScheduledExecutorService lookupdScheduler;
+
 	public static final ConcurrentHashMap<String, NSQReader> readerIndex = new ConcurrentHashMap<String, NSQReader>();
 	
 	public void init(String topic, String channel){
@@ -69,14 +57,8 @@ public abstract class NSQReader {
 		
 		this.connClass = BasicConnection.class; // TODO can be passed by caller
 		this.lookupdConnections = new ConcurrentHashMap<String, AbstractLookupd>();
-		try {
-			this.scheduler = StdSchedulerFactory.getDefaultScheduler();
-			this.scheduler.start();
-		} catch (SchedulerException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
+        this.lookupdScheduler = Executors.newScheduledThreadPool(1);
+
 		// register action for shutdown
 		Runtime.getRuntime().addShutdownHook(new Thread(){
 			@Override
@@ -88,16 +70,12 @@ public abstract class NSQReader {
 	}
 	
 	public void shutdown(){
-		System.out.println("Received signal to shut down");
-		try {
-			this.scheduler.shutdown();
-		} catch (SchedulerException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		log.info("NSQReader received shutdown signal, shutting down connections");
 		for(Connection conn: this.connections.values()){
 			conn.close();
 		}
+        this.executor.shutdown();
+        this.lookupdScheduler.shutdown();
 	}
 	
 	protected abstract Runnable makeRunnableFromMessage(Message msg);
@@ -116,7 +94,7 @@ public abstract class NSQReader {
 			try {
 				msg.getConn().send(ConnectionUtils.requeue(msg.getId(), newDelay));
 			} catch (NSQException e) {
-				e.printStackTrace();
+				log.error("Error requeueing message to {}, will close the connection", msg.getConn());
 				msg.getConn().close();
 			}
 		}
@@ -126,7 +104,7 @@ public abstract class NSQReader {
 		try {
 			msg.getConn().send(ConnectionUtils.finish(msg.getId()));
 		} catch (NSQException e) {
-			e.printStackTrace();
+			log.error("Error finishing message {} (from {}). Will close connection.", msg, msg.getConn());
 			msg.getConn().close();
 		}
 	}
@@ -158,39 +136,15 @@ public abstract class NSQReader {
 	
 	// lookupd stuff
 	
-	public Scheduler getLookupdScheduler() {
-		return this.scheduler;
-	}
-	
-	
 	public void addLookupd(AbstractLookupd lookupd) {
 		String addr = lookupd.getAddr();
 		AbstractLookupd stored = this.lookupdConnections.putIfAbsent(addr, lookupd);
-		if(stored != null){
+		if (stored != null){
 			return;
 		}
-        Trigger trigger = TriggerBuilder.newTrigger()
-                .withIdentity("lookupd-" + addr, "lookupd-triggers")
-                .startNow()
-                .withSchedule(SimpleScheduleBuilder.simpleSchedule()
-                        .withIntervalInSeconds(40)
-                        .repeatForever())            
-                .build();
-        JobDetail lookupdJob = JobBuilder.newJob(BasicLookupdJob.class)
-                .withIdentity("lookupd-" + addr, "lookupd-jobs")
-        		.usingJobData("lookupdAddress", addr)
-        		.usingJobData("reader", this.toString())
-        		.build();
-        try {
-			this.getLookupdScheduler().scheduleJob(lookupdJob, trigger);
-		} catch (SchedulerException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+        lookupdScheduler.scheduleAtFixedRate(new BasicLookupdJob(addr, this), 30, 30, SECONDS);
 	}
-	
-	// -----
-	
+
 	public String toString(){
 		return "Reader<" + this.topic + ", " + this.channel + ">";
 	}
@@ -202,6 +156,5 @@ public abstract class NSQReader {
 	public ConcurrentHashMap<String, AbstractLookupd> getLookupdConnections() {
 		return lookupdConnections;
 	}
-
 
 }
