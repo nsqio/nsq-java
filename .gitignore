@@ -8,3 +8,9 @@
 # Eclipse settings
 .settings
 
+# IDEA settings
+*.iml
+.idea
+
+# Maven output
+/target
