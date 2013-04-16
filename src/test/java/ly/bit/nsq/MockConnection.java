@@ -98,7 +98,7 @@ public class MockConnection extends Connection {
 		Message msg = new Message(idBytes, body.getBytes(), System.currentTimeMillis()*1000,
 				new Integer(0).shortValue(), this);
 
-		byte[] framed = frameMessage(this.encodeMessage(msg));
+		byte[] framed = frameMessage(MessageCodec.encode(msg));
 		log.debug("Inserting fake message: '{}'", framed);
 
 		this.messages.add(framed);

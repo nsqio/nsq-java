@@ -29,10 +29,10 @@ public class ConnectionTest {
 		String body = "kjehfliuANDY.WAS.HEREe;flijwe,jfhwqliuehfj";
 		Message msg = new Message(id, body.getBytes(), System.currentTimeMillis()*1000,
 				new Integer(0).shortValue(), conn);
-		byte[] encoded = conn.encodeMessage(msg);
+		byte[] encoded = MessageCodec.encode(msg);
 		log.debug("Encoded message: {}", encoded);
 
-		Message decoded = conn.decodeMessage(encoded);
+		Message decoded = MessageCodec.decode(encoded, conn);
 		assertEquals(msg.getAttempts(), decoded.getAttempts());
 		for (int i=0; i<id.length; i++) {
 			assertEquals(id[i], decoded.getId()[i]);
@@ -40,7 +40,7 @@ public class ConnectionTest {
 		assertEquals(new String(msg.getBody()), new String(decoded.getBody()));
 		assertEquals(msg.getTimestamp(), decoded.getTimestamp());
 
-		byte[] reenecoded = conn.encodeMessage(decoded);
+		byte[] reenecoded = MessageCodec.encode(decoded);
 		assertEquals(encoded.length, reenecoded.length);
 		for (int i=0; i<reenecoded.length; i++) {
 			assertEquals(encoded[i], reenecoded[i]);
