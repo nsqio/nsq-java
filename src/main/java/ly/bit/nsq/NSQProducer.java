@@ -5,6 +5,8 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.params.ClientPNames;
+import org.apache.http.client.params.CookiePolicy;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.scheme.PlainSocketFactory;
 import org.apache.http.conn.scheme.Scheme;
@@ -58,6 +60,9 @@ public class NSQProducer {
 		this.httpclient = new DefaultHttpClient(cm);
 		this.setSocketTimeout(DEFAULT_SOCKET_TIMEOUT);
 		this.setConnectionTimeout(DEFAULT_CONNECTION_TIMEOUT);
+		// see https://code.google.com/p/crawler4j/issues/detail?id=136: potentially works around a jvm crash at
+		// org.apache.http.impl.cookie.BestMatchSpec.formatCookies(Ljava/util/List;)Ljava/util/List
+		this.httpclient.getParams().setParameter(ClientPNames.COOKIE_POLICY, CookiePolicy.IGNORE_COOKIES);
 
 		// register action for shutdown
 		Runtime.getRuntime().addShutdownHook(new Thread(){
