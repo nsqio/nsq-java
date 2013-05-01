@@ -1,6 +1,7 @@
 package ly.bit.nsq;
 
 import ly.bit.nsq.exceptions.NSQException;
+import ly.bit.nsq.util.NamedThreadFactory;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
@@ -21,10 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.FutureTask;
+import java.util.concurrent.*;
 
 
 public class NSQProducer {
@@ -36,7 +34,7 @@ public class NSQProducer {
 
 	private String url;
 	private String topic;
-	protected ExecutorService executor = Executors.newCachedThreadPool();
+	protected ExecutorService executor;
 
 
 	protected HttpClient httpclient;
@@ -63,6 +61,10 @@ public class NSQProducer {
 		// see https://code.google.com/p/crawler4j/issues/detail?id=136: potentially works around a jvm crash at
 		// org.apache.http.impl.cookie.BestMatchSpec.formatCookies(Ljava/util/List;)Ljava/util/List
 		this.httpclient.getParams().setParameter(ClientPNames.COOKIE_POLICY, CookiePolicy.IGNORE_COOKIES);
+
+		String alphaNumericTopic = topic.replaceAll("[^a-zA-Z0-9]", "");
+		ThreadFactory namedThreadFactory = new NamedThreadFactory("NSQProducer-" + alphaNumericTopic + "-%d");
+		this.executor = Executors.newCachedThreadPool(namedThreadFactory);
 
 		// register action for shutdown
 		Runtime.getRuntime().addShutdownHook(new Thread(){
