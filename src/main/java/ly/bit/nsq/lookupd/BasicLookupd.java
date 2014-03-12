@@ -21,13 +21,11 @@ public class BasicLookupd extends AbstractLookupd {
 		URL url = null;
 		try {
 			url = new URL(urlString);
-		} catch (MalformedURLException e) {
-			log.error("Malformed Lookupd URL: {}", urlString);
-		}
-		try {
 			InputStream is = url.openStream();
 			BufferedReader br = new BufferedReader(new InputStreamReader(is));
 			return parseResponseForProducers(br);
+		} catch (MalformedURLException e) {
+			log.error("Malformed Lookupd URL: {}", urlString);
 		} catch (IOException e) {
 			log.error("Problem reading lookupd response: ", e);
 		}
