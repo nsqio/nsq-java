@@ -87,7 +87,7 @@ public class NSQProducer {
 			if (response.getStatusLine().getStatusCode() != 200) {
 				throw new NSQException("POST to " + url + " returned HTTP " + response.getStatusLine().getStatusCode());
 			}
-			if (response != null && response.getEntity() != null) {
+			if (response.getEntity() != null) {
 				EntityUtils.consume(response.getEntity());
 			}
 		} catch (UnsupportedEncodingException e) {
