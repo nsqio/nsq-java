@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>ly.bit</groupId>
     <artifactId>nsq</artifactId>
-    <version>0.0.1-m2mp</version>
+    <version>0.0.1-fclairamb</version>
     <name>Java NSQ Client</name>
     <dependencies>
         <dependency>
