@@ -37,7 +37,10 @@ public abstract class AbstractLookupd {
 			 Iterator<JsonNode> prodItr = producers.getElements();
 			 while(prodItr.hasNext()){
 				 JsonNode producer = prodItr.next();
-				 String addr = producer.path("address").getTextValue();
+				 String addr = producer.path("broadcast_address").getTextValue();
+				 if ( addr == null ) { // We're keeping previous field compatibility, just in case
+					addr = producer.path("address").getTextValue();
+				 }
 				 int tcpPort = producer.path("tcp_port").getIntValue();
 				 outputs.add(addr + ":" + tcpPort);
 			 }
