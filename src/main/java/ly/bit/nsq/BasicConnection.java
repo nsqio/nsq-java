@@ -106,7 +106,7 @@ public class BasicConnection extends Connection {
 			// whatever, we're not doing anything with this anymore
 			log.error("Exception closing connection: ", e);
 		}
-		this.reader.connections.remove(this.toString());
+		BasicConnection.this.reader.connectionClosed(BasicConnection.this);
 	}
 
 }

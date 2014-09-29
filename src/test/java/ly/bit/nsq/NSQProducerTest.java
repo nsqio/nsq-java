@@ -1,15 +1,12 @@
 package ly.bit.nsq;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.*;
-
-
 import ly.bit.nsq.exceptions.NSQException;
-import org.apache.http.*;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.ProtocolVersion;
+import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.message.BasicStatusLine;
 import org.junit.After;
 import org.junit.Before;
@@ -18,6 +15,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.FutureTask;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * User: oneill

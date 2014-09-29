@@ -1,12 +1,12 @@
 package ly.bit.nsq;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import static java.util.concurrent.TimeUnit.SECONDS;
+/**
+ * Base implementation of an NSQ consusumer client which manages lookupd requests
+ * and responses, nsqd connections etc.
+ * Typically you would use a specific implementation like SyncResponseReader, which
+ * additionally implements synchronous responses for messages.
+ * See the PrintReader example.
+ */
 
 import ly.bit.nsq.exceptions.NSQException;
 import ly.bit.nsq.lookupd.AbstractLookupd;
@@ -15,9 +15,23 @@ import ly.bit.nsq.util.ConnectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 
 public abstract class NSQReader {
 	private static final Logger log = LoggerFactory.getLogger(NSQReader.class);
+
+	private static final int LOOKUPD_INITIAL_DELAY = 0;
+	private static final int LOOKUPD_POLL_INTERVAL = 30;
 	
 	protected int requeueDelay;
 	protected int maxRetries;
@@ -30,7 +44,7 @@ public abstract class NSQReader {
 	
 	protected ExecutorService executor;
 	
-	protected Class<? extends Connection> connClass;
+	protected Class<? extends Connection> connClass = BasicConnection.class;
 	
 	protected ConcurrentHashMap<String, Connection> connections;
 	protected ConcurrentHashMap<String, AbstractLookupd> lookupdConnections;
@@ -55,7 +69,6 @@ public abstract class NSQReader {
 		String[] hostParts = this.hostname.split("\\.");
 		this.shortHostname = hostParts[0];
 		
-		this.connClass = BasicConnection.class; // TODO can be passed by caller
 		this.lookupdConnections = new ConcurrentHashMap<String, AbstractLookupd>();
         this.lookupdScheduler = Executors.newScheduledThreadPool(1);
 
@@ -132,7 +145,55 @@ public abstract class NSQReader {
 		conn.send(ConnectionUtils.ready(conn.maxInFlight));
 		conn.readForever();
 	}
-	
+
+	/**
+	 * Set the currently configured nsqd addresses that we should be connected to. This triggers disconnects (from
+	 * disused servers) and connection attempts (to new servers).
+	 * This function is probably only called from the Lookupd job.
+	 * @param connectionAddresses
+	 */
+	public void handleLookupdResponse(Set<String> connectionAddresses) {
+		Set<String> toClose = new HashSet<String>(connections.keySet());
+		Set<String> toOpen = new HashSet<String>(connectionAddresses);
+
+		// We need to open any connections in set that are not already open
+		toOpen.removeAll(connections.keySet());
+		// We need to close any connections that are open but not in the set
+		toClose.removeAll(connectionAddresses);
+
+		// Open new connections
+		for(String address : toOpen) {
+			log.info("Opening new producer connection: {}", address);
+			String[] components = address.split(":");
+			String nsqdAddress = components[0];
+			int nsqdPort = Integer.parseInt(components[1]);
+			try {
+				connectToNsqd(nsqdAddress, nsqdPort);
+			} catch (NSQException e) {
+				log.error("Erroring response from lookupd", e);
+			}
+		}
+		// close old connections
+		for(String address : toClose) {
+			if (connections.containsKey(address)) {
+				log.info("Producer not in lookupd response, closing connection: {}", address);
+				connections.get(address).close();
+				this.connections.remove(address);
+			}
+
+		}
+	}
+
+	/**
+	 * Remove this nsqd connection from our active pool if it is present.
+	 * Typically called after problems are detected with the connection, or
+	 * after a lookupd request shows that the server is no longer active.
+	 * @param conn
+	 */
+	public void connectionClosed(Connection conn) {
+		this.connections.remove(conn.toString());
+
+	}
 	
 	// lookupd stuff
 	
@@ -142,7 +203,7 @@ public abstract class NSQReader {
 		if (stored != null){
 			return;
 		}
-        lookupdScheduler.scheduleAtFixedRate(new BasicLookupdJob(addr, this), 30, 30, SECONDS);
+        lookupdScheduler.scheduleAtFixedRate(new BasicLookupdJob(addr, this), LOOKUPD_INITIAL_DELAY, LOOKUPD_POLL_INTERVAL, SECONDS);
 	}
 
 	public String toString(){
@@ -155,6 +216,14 @@ public abstract class NSQReader {
 
 	public ConcurrentHashMap<String, AbstractLookupd> getLookupdConnections() {
 		return lookupdConnections;
+	}
+
+	public void setConnClass(Class<? extends Connection> clazz) {
+		this.connClass = clazz;
+	}
+
+	public ConcurrentHashMap<String, Connection> getConnections() {
+		return this.connections;
 	}
 
 }

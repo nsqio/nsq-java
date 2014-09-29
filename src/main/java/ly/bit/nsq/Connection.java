@@ -1,18 +1,17 @@
 package ly.bit.nsq;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import ly.bit.nsq.exceptions.NSQException;
 import ly.bit.nsq.util.ConnectionUtils;
 import ly.bit.nsq.util.FrameType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
@@ -61,20 +60,6 @@ public abstract class Connection {
 	public abstract void readForever() throws NSQException;
 	public abstract void close();
 	
-	public Message decodeMesage(byte[] data) throws NSQException {
-		DataInputStream ds = new DataInputStream(new ByteArrayInputStream(data));
-		try {
-			long timestamp = ds.readLong(); // 8 bytes
-			short attempts = ds.readShort(); // 2 bytes
-			byte[] id = new byte[16];
-			ds.read(id);
-			byte[] body = new byte[data.length - 26];
-			ds.read(body);
-			return new Message(id, body, timestamp, attempts, this);
-		} catch (IOException e) {
-			throw new NSQException(e);
-		}
-	}
 
 	public void handleResponse(byte[] response) throws NSQException {
 		DataInputStream ds = new DataInputStream(new ByteArrayInputStream(response));
@@ -86,7 +71,7 @@ public abstract class Connection {
 				break;
 			case FRAMETYPEMESSAGE:
 				byte[] messageBytes = Arrays.copyOfRange(response, 4, response.length); 
-				Message msg = this.decodeMesage(messageBytes);
+				Message msg = MessageCodec.decode(messageBytes, this);
 				this.messageReceivedCallback(msg);
 				break;
 			case FRAMETYPEERROR:
