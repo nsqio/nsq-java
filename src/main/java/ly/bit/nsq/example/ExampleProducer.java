@@ -6,13 +6,14 @@ import ly.bit.nsq.exceptions.NSQException;
 public class ExampleProducer {
 
 	public static void main(String... args){
-		NSQProducer producer = new NSQProducer("http://127.0.0.1:4151", "testTopic");
+		NSQProducer producer = new NSQProducer("http://127.0.0.1:4151");
+		String topic = "testTopic";
 
 		for(int i=0; i<100; i++) {
 			try {
 				String message = "{\"foo\":\"bar\"}";
 				System.out.println("Sending: " + message);
-				producer.put(message);
+				producer.put(message, topic);
 				Thread.sleep(1000);
 			} catch (NSQException e) {
 				e.printStackTrace();

@@ -1,13 +1,13 @@
 package ly.bit.nsq;
 
 import ly.bit.nsq.exceptions.NSQException;
+
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.params.ClientPNames;
 import org.apache.http.client.params.CookiePolicy;
-import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.scheme.PlainSocketFactory;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
@@ -34,28 +34,21 @@ public class NSQProducer {
 	private static final int DEFAULT_SOCKET_TIMEOUT = 2000;
 	private static final int DEFAULT_CONNECTION_TIMEOUT = 2000;
 
-	private String url;
-	private String topic;
+	private String host;
 	protected ExecutorService executor = Executors.newCachedThreadPool();
 
-
 	protected HttpClient httpclient;
+	protected PoolingClientConnectionManager cm;
 	// TODO add timeout config / allow setting any httpclient param via getHtttpClient
 
-	// Convenience  constructor assuming local nsqd on standard port
-	public NSQProducer(String topic) {
-		this("http://127.0.0.1:4151", topic);
-	}
-
-	public NSQProducer(String url, String topic) {
-		this.topic = topic;
-		this.url = url + PUT_URL + topic;
+	public NSQProducer(String host) {
+		this.host = host;
 
 		SchemeRegistry schemeRegistry = new SchemeRegistry();
 		schemeRegistry.register(
 				new Scheme("http", 80, PlainSocketFactory.getSocketFactory()));
 
-		ClientConnectionManager cm = new PoolingClientConnectionManager(schemeRegistry);
+		cm = new PoolingClientConnectionManager(schemeRegistry);
 
 		this.httpclient = new DefaultHttpClient(cm);
 		this.setSocketTimeout(DEFAULT_SOCKET_TIMEOUT);
@@ -78,9 +71,10 @@ public class NSQProducer {
 	 * @param message
 	 * @throws NSQException
 	 */
-	public void put(String message) throws NSQException {
+	public void put(String message, String topic) throws NSQException {
 		HttpPost post = null;
 		try {
+			String url = getUrl(topic);
 			post = new HttpPost(url);
 			post.setEntity(new StringEntity(message));
 			HttpResponse response = this.httpclient.execute(post);
@@ -109,8 +103,8 @@ public class NSQProducer {
 	 * @param message
 	 * @return
 	 */
-	public FutureTask<Void> putAsync(String message) {
-		FutureTask task = new FutureTask<Void>(new NSQAsyncWriter(message));
+	public FutureTask<Void> putAsync(String message, String topic) {
+		FutureTask<Void> task = new FutureTask<Void>(new NSQAsyncWriter(message, topic));
 		executor.execute(task);
 		return task;
 
@@ -118,13 +112,15 @@ public class NSQProducer {
 
 	public class NSQAsyncWriter implements Callable<Void> {
 		private String message = null;
+		private String topic = null;
 
-		NSQAsyncWriter(String message) {
+		NSQAsyncWriter(String message, String topic) {
 			this.message = message;
+			this.topic = topic;
 		}
 		public Void call() throws NSQException {
 			try {
-				NSQProducer.this.put(message);
+				NSQProducer.this.put(message, topic);
 			} catch (NSQException e) {
 				// Log the error here since caller probably won't ever check the future.
 				log.error("Error posting NSQ message:", e);
@@ -145,18 +141,11 @@ public class NSQProducer {
 	}
 
 	public String toString(){
-		return "Writer<" + this.url + ">";
+		return "Writer<" + this.host + ">";
 	}
-	public String getUrl() {
-		return url;
-	}
-
-	public String getTopic() {
-		return topic;
-	}
-
-	public void setTopic(String topic) {
-		this.topic = topic;
+	
+	public String getUrl(String topic) {
+		return new StringBuffer(host).append(PUT_URL).append(topic).toString();
 	}
 
 	/**
@@ -177,6 +166,22 @@ public class NSQProducer {
 
 	public void setConnectionTimeout(int timeout) {
 		this.httpclient.getParams().setIntParameter(CoreConnectionPNames.CONNECTION_TIMEOUT, timeout);
+	}
+	
+	/**
+	 * default 2
+	 * @param max
+	 */
+	public void setDefaultMaxPerRoute(int max) {
+		this.cm.setDefaultMaxPerRoute(max);
+	}
+	
+	/**
+	 * default 20
+	 * @param max
+	 */
+	public void setMaxTotal(int max) {
+		this.cm.setMaxTotal(max);
 	}
 
 }

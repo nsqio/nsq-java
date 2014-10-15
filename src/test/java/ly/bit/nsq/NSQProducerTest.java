@@ -26,15 +26,16 @@ import java.util.concurrent.FutureTask;
 public class NSQProducerTest {
 	private Logger log = LoggerFactory.getLogger(NSQProducerTest.class);
 	NSQProducer producer;
+	String host = "http://127.0.0.1:4151";
 	String topic = "andy_wuz_ere";
 	HttpClient mockClient;
 
 	@Before
 	public void setUp() {
 		mockClient = mock(HttpClient.class);
-		producer = new NSQProducer(topic);
+		producer = new NSQProducer(host);
 		producer.httpclient = mockClient;
-		assertEquals("http://127.0.0.1:4151/put?topic=" + topic, producer.getUrl());
+		assertEquals("http://127.0.0.1:4151/put?topic=" + topic, producer.getUrl(topic));
 	}
 
 	@After
@@ -49,7 +50,7 @@ public class NSQProducerTest {
 		StatusLine statusLine = new BasicStatusLine(new ProtocolVersion("HTTP", 1, 1), HttpStatus.SC_OK, "OK");
 		when(successResponse.getStatusLine()).thenReturn(statusLine);
 		when(mockClient.execute(any(HttpPost.class))).thenReturn(successResponse);
-		producer.put("{foo:\"bar\"}");
+		producer.put("{foo:\"bar\"}", topic);
 	}
 
 	@Test(expected = NSQException.class)
@@ -60,7 +61,7 @@ public class NSQProducerTest {
 				"OH NOES, NSQD CRASHED");
 		when(errorResponse.getStatusLine()).thenReturn(statusLine);
 		when(mockClient.execute(any(HttpPost.class))).thenReturn(errorResponse);
-		producer.put("{foo:\"bar\"}");
+		producer.put("{foo:\"bar\"}", topic);
 	}
 
 	@Test
@@ -70,7 +71,7 @@ public class NSQProducerTest {
 		StatusLine statusLine = new BasicStatusLine(new ProtocolVersion("HTTP", 1, 1), HttpStatus.SC_OK, "OK");
 		when(successResponse.getStatusLine()).thenReturn(statusLine);
 		when(mockClient.execute(any(HttpPost.class))).thenReturn(successResponse);
-		FutureTask<Void> future = producer.putAsync("{foo:\"bar\"}");
+		FutureTask<Void> future = producer.putAsync("{foo:\"bar\"}", topic);
 		future.get();
 	}
 
@@ -82,7 +83,7 @@ public class NSQProducerTest {
 				"OH NOES, NSQD CRASHED");
 		when(errorResponse.getStatusLine()).thenReturn(statusLine);
 		when(mockClient.execute(any(HttpPost.class))).thenReturn(errorResponse);
-		FutureTask<Void> future = producer.putAsync("{foo:\"bar\"}");
+		FutureTask<Void> future = producer.putAsync("{foo:\"bar\"}", topic);
 		future.get();
 	}
 
@@ -93,7 +94,7 @@ public class NSQProducerTest {
 		StatusLine statusLine = new BasicStatusLine(new ProtocolVersion("HTTP", 1, 1), HttpStatus.SC_OK, "OK");
 		when(successResponse.getStatusLine()).thenReturn(statusLine);
 		when(mockClient.execute(any(HttpPost.class))).thenReturn(successResponse);
-		FutureTask<Void> future = producer.putAsync("{foo:\"bar\"}");
+		FutureTask<Void> future = producer.putAsync("{foo:\"bar\"}", topic);
 		producer.shutdown();
 		assertTrue(producer.executor.isShutdown());
 
