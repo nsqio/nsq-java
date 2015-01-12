@@ -1,6 +1,7 @@
 package ly.bit.nsq;
 
 import ly.bit.nsq.exceptions.NSQException;
+import ly.bit.nsq.lookupd.DefaultLookup;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -22,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
@@ -33,16 +35,21 @@ public class NSQProducer {
 	private static final String PUT_URL = "/put?topic=";
 	private static final int DEFAULT_SOCKET_TIMEOUT = 2000;
 	private static final int DEFAULT_CONNECTION_TIMEOUT = 2000;
+	private static final int MAX_RETRY_COUNT = 3;
 
-	private String host;
+	private DefaultLookup lookup;
+	private ConcurrentHashMap<String, String> hostIndex;
+	private ConcurrentHashMap<String, Integer> reTryCountMap;
 	protected ExecutorService executor = Executors.newCachedThreadPool();
 
 	protected HttpClient httpclient;
 	protected PoolingClientConnectionManager cm;
 	// TODO add timeout config / allow setting any httpclient param via getHtttpClient
 
-	public NSQProducer(String host) {
-		this.host = host;
+	public NSQProducer(String lookupAddr) {
+		this.lookup = new DefaultLookup(lookupAddr);
+		this.hostIndex = new ConcurrentHashMap<String, String>();
+		this.reTryCountMap = new ConcurrentHashMap<String, Integer>();
 
 		SchemeRegistry schemeRegistry = new SchemeRegistry();
 		schemeRegistry.register(
@@ -75,6 +82,9 @@ public class NSQProducer {
 		HttpPost post = null;
 		try {
 			String url = getUrl(topic);
+			if (url == null) {
+				throw new NSQException("can't get topic:("+topic+") http producer");
+			}
 			post = new HttpPost(url);
 			post.setEntity(new StringEntity(message));
 			HttpResponse response = this.httpclient.execute(post);
@@ -84,12 +94,19 @@ public class NSQProducer {
 			if (response.getEntity() != null) {
 				EntityUtils.consume(response.getEntity());
 			}
+			reTryCountMap.put(topic, 0);
 		} catch (UnsupportedEncodingException e) {
 			throw new NSQException(e);
 		} catch (ClientProtocolException e) {
 			throw new NSQException(e);
 		} catch (IOException e) {
-			throw new NSQException(e);
+			Integer reTryCount = reTryCountMap.get(topic);
+			if (reTryCount != null && reTryCount.intValue() < MAX_RETRY_COUNT) {
+				reTryCountMap.put(topic, MAX_RETRY_COUNT);
+				put(message, topic);// retry
+			} else {
+				throw new NSQException(e);
+			}
 		} finally {
 			if (post != null) {
 				post.releaseConnection();
@@ -140,12 +157,18 @@ public class NSQProducer {
 		}
 	}
 
-	public String toString(){
-		return "Writer<" + this.host + ">";
-	}
-	
 	public String getUrl(String topic) {
-		return new StringBuffer(host).append(PUT_URL).append(topic).toString();
+		String url = hostIndex.get(topic);
+		if (url == null) {
+			String httpAddr = lookup.getAvailableHttpAddr(topic);
+			if (httpAddr == null) httpAddr = lookup.getAvailableHttpAddr();
+			if (httpAddr == null) return null;
+			url = new StringBuffer(httpAddr).append(PUT_URL).append(topic).toString();
+			hostIndex.put(topic, url);
+			reTryCountMap.put(topic, 0);
+		}
+		
+		return url;
 	}
 
 	/**

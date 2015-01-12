@@ -1,16 +1,58 @@
-*.class
+# Node               #
+######################
+lib-cov
+*.seed
+*.log
+*.csv
+*.dat
+*.out
+*.pid
+*.gz
 
-# Package Files #
-*.jar
-*.war
-*.ear
+pids
+logs
+results
 
-# Eclipse settings
-.settings
+npm-debug.log
+node_modules
 
-# IDEA settings
-*.iml
-.idea
+# Logs and databases #
+######################
+*.log
+*.sql
+*.sqlite
 
-# Maven output
-/target
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor #
+######################
+.idea/
+iron.iml
+*.sublime-workspace
+*.sublime-project
+iron.iml
+/nbproject/
+.tm_properties
+
+/kdt.zip
+.tags
+.tags_sorted_by_file
+
+.buildpath
+.project
+.classpath
+.settings/
+koala-config.json
+
+.externalToolBuilders/
+.gitignore
+
+target/

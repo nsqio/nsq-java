@@ -3,8 +3,6 @@ package ly.bit.nsq.syncresponse;
 import ly.bit.nsq.Message;
 import ly.bit.nsq.NSQReader;
 import ly.bit.nsq.exceptions.RequeueWithoutBackoff;
-import ly.bit.nsq.lookupd.AbstractLookupd;
-import ly.bit.nsq.lookupd.BasicLookupd;
 
 public class SyncResponseReader extends NSQReader {
 	

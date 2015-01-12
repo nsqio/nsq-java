@@ -9,7 +9,6 @@ import ly.bit.nsq.exceptions.NSQException;
 import org.apache.http.*;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.message.BasicStatusLine;
 import org.junit.After;
 import org.junit.Before;

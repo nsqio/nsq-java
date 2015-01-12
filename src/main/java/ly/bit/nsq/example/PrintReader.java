@@ -11,7 +11,7 @@ package ly.bit.nsq.example;
 
 import ly.bit.nsq.Message;
 import ly.bit.nsq.exceptions.NSQException;
-import ly.bit.nsq.lookupd.BasicLookupd;
+import ly.bit.nsq.lookupd.DefaultLookup;
 import ly.bit.nsq.syncresponse.SyncResponseHandler;
 import ly.bit.nsq.syncresponse.SyncResponseReader;
 
@@ -31,7 +31,7 @@ public class PrintReader implements SyncResponseHandler {
 //			// TODO Auto-generated catch block
 //			e.printStackTrace();
 //		}
-		reader.addLookupd(new BasicLookupd("http://127.0.0.1:4161"));
+		reader.addLookupd(new DefaultLookup("http://127.0.0.1:4161"));
 		try {
 			Thread.sleep(5000);
 		} catch (InterruptedException e) {

@@ -8,21 +8,21 @@ import ly.bit.nsq.exceptions.NSQException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BasicLookupdJob implements Runnable {
-	private static final Logger log = LoggerFactory.getLogger(BasicLookupdJob.class);
+public class ReaderLookupJob implements Runnable {
+	private static final Logger log = LoggerFactory.getLogger(ReaderLookupJob.class);
     final private String lookupdAddress;
     final private NSQReader reader;
 
-    public BasicLookupdJob(String lookupdAddress, NSQReader reader) {
+    public ReaderLookupJob(String lookupdAddress, NSQReader reader) {
         this.lookupdAddress = lookupdAddress;
         this.reader = reader;
     }
 
 	@Override
     public void run() {
-        Map<String, AbstractLookupd> lookupdConnections = reader.getLookupdConnections();
-        AbstractLookupd lookupd = lookupdConnections.get(lookupdAddress);
-        List<String> producers = lookupd.query(reader.getTopic());
+        Map<String, DefaultLookup> lookupdConnections = reader.getLookupdConnections();
+        DefaultLookup lookupd = lookupdConnections.get(lookupdAddress);
+        List<String> producers = lookupd.getTcpAddrs(reader.getTopic());
         for(String producer : producers) {
             String[] components = producer.split(":");
             String nsqdAddress = components[0];
