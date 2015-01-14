@@ -2,6 +2,7 @@ package ly.bit.nsq;
 
 import ly.bit.nsq.exceptions.NSQException;
 import ly.bit.nsq.lookupd.DefaultLookup;
+import ly.bit.nsq.util.StringUtils;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -37,6 +38,7 @@ public class NSQProducer {
 	private static final int DEFAULT_CONNECTION_TIMEOUT = 2000;
 	private static final int MAX_RETRY_COUNT = 3;
 
+	private String defaultNsqdAddr;
 	private DefaultLookup lookup;
 	private ConcurrentHashMap<String, String> hostIndex;
 	private ConcurrentHashMap<String, Integer> reTryCountMap;
@@ -45,6 +47,11 @@ public class NSQProducer {
 	protected HttpClient httpclient;
 	protected PoolingClientConnectionManager cm;
 	// TODO add timeout config / allow setting any httpclient param via getHtttpClient
+	
+	public NSQProducer(String defaultNsqdAddr, String lookupAddr) {
+		this(lookupAddr);
+		this.defaultNsqdAddr =  StringUtils.trimRight("/", defaultNsqdAddr);
+	}
 
 	public NSQProducer(String lookupAddr) {
 		this.lookup = new DefaultLookup(lookupAddr);
@@ -160,12 +167,19 @@ public class NSQProducer {
 	public String getUrl(String topic) {
 		String url = hostIndex.get(topic);
 		if (url == null) {
-			String httpAddr = lookup.getAvailableHttpAddr(topic);
-			if (httpAddr == null) httpAddr = lookup.getAvailableHttpAddr();
-			if (httpAddr == null) return null;
-			url = new StringBuffer(httpAddr).append(PUT_URL).append(topic).toString();
-			hostIndex.put(topic, url);
-			reTryCountMap.put(topic, 0);
+			if (StringUtils.isBlank(lookup.getLookupAddr()) && !StringUtils.isBlank(defaultNsqdAddr)) {
+				url = new StringBuffer(defaultNsqdAddr).append(PUT_URL).append(topic).toString();
+				hostIndex.put(topic, url);
+				System.out.println("aaaa");
+			} else {
+				String httpAddr = lookup.getAvailableHttpAddr(topic);
+				if (httpAddr == null) httpAddr = lookup.getAvailableHttpAddr();
+				if (httpAddr == null) return null;
+				url = new StringBuffer(httpAddr).append(PUT_URL).append(topic).toString();
+				hostIndex.put(topic, url);
+				reTryCountMap.put(topic, 0);
+				System.out.println("dddd");
+			}
 		}
 		
 		return url;

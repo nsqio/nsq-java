@@ -14,6 +14,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import ly.bit.nsq.util.StringUtils;
+
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -29,7 +31,7 @@ public class DefaultLookup {
 	private String lookupAddr;
 
 	public DefaultLookup(String lookupAddr) {
-		this.lookupAddr = lookupAddr;
+		this.lookupAddr = StringUtils.trimRight("/", lookupAddr);
 	}
 	
 	public String getLookupAddr() {
