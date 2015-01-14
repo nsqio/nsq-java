@@ -170,7 +170,6 @@ public class NSQProducer {
 			if (StringUtils.isBlank(lookup.getLookupAddr()) && !StringUtils.isBlank(defaultNsqdAddr)) {
 				url = new StringBuffer(defaultNsqdAddr).append(PUT_URL).append(topic).toString();
 				hostIndex.put(topic, url);
-				System.out.println("aaaa");
 			} else {
 				String httpAddr = lookup.getAvailableHttpAddr(topic);
 				if (httpAddr == null) httpAddr = lookup.getAvailableHttpAddr();
@@ -178,7 +177,6 @@ public class NSQProducer {
 				url = new StringBuffer(httpAddr).append(PUT_URL).append(topic).toString();
 				hostIndex.put(topic, url);
 				reTryCountMap.put(topic, 0);
-				System.out.println("dddd");
 			}
 		}
 		
