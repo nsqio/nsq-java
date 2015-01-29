@@ -109,7 +109,13 @@ public class NSQProducer {
 		} catch (IOException e) {
 			Integer reTryCount = reTryCountMap.get(topic);
 			if (reTryCount != null && reTryCount.intValue() < MAX_RETRY_COUNT) {
+			    try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e1) {
+					throw new NSQException(e1);
+				}
 				reTryCountMap.put(topic, MAX_RETRY_COUNT);
+				hostIndex.remove(topic);
 				put(message, topic);// retry
 			} else {
 				throw new NSQException(e);
