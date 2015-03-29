@@ -36,6 +36,8 @@ public class NSQProducer {
 	private static final String PUT_URL = "/put?topic=";
 	private static final int DEFAULT_SOCKET_TIMEOUT = 2000;
 	private static final int DEFAULT_CONNECTION_TIMEOUT = 2000;
+	private static final int MAX_PER_ROUTE_CONNECTIONS = 32;
+	private static final int MAX_CONNECTIONS = 64;
 	private static final int MAX_RETRY_COUNT = 3;
 
 	private String defaultNsqdAddr;
@@ -63,6 +65,8 @@ public class NSQProducer {
 				new Scheme("http", 80, PlainSocketFactory.getSocketFactory()));
 
 		cm = new PoolingClientConnectionManager(schemeRegistry);
+		cm.setDefaultMaxPerRoute(MAX_PER_ROUTE_CONNECTIONS);
+		cm.setMaxTotal(MAX_CONNECTIONS);
 
 		this.httpclient = new DefaultHttpClient(cm);
 		this.setSocketTimeout(DEFAULT_SOCKET_TIMEOUT);
