@@ -1,22 +1,20 @@
 package ly.bit.nsq;
 
 import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.util.Arrays;
 
 import ly.bit.nsq.exceptions.NSQException;
 import ly.bit.nsq.util.ConnectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BasicConnection extends Connection {
-	private static final Logger log = LoggerFactory.getLogger(BasicConnection.class);
+public class DefaultConnection extends Connection {
+	private static final Logger log = LoggerFactory.getLogger(DefaultConnection.class);
 	
 	private Socket sock;
 	private InputStream inputStream;

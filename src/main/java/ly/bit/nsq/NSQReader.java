@@ -6,15 +6,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import ly.bit.nsq.exceptions.NSQException;
-import ly.bit.nsq.lookupd.AbstractLookupd;
-import ly.bit.nsq.lookupd.BasicLookupdJob;
+import ly.bit.nsq.lookupd.ReaderLookupJob;
+import ly.bit.nsq.lookupd.DefaultLookup;
 import ly.bit.nsq.util.ConnectionUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 public abstract class NSQReader {
 	private static final Logger log = LoggerFactory.getLogger(NSQReader.class);
@@ -33,7 +33,7 @@ public abstract class NSQReader {
 	protected Class<? extends Connection> connClass;
 	
 	protected ConcurrentHashMap<String, Connection> connections;
-	protected ConcurrentHashMap<String, AbstractLookupd> lookupdConnections;
+	protected ConcurrentHashMap<String, DefaultLookup> lookupdConnections;
 
     private ScheduledExecutorService lookupdScheduler;
 
@@ -55,8 +55,8 @@ public abstract class NSQReader {
 		String[] hostParts = this.hostname.split("\\.");
 		this.shortHostname = hostParts[0];
 		
-		this.connClass = BasicConnection.class; // TODO can be passed by caller
-		this.lookupdConnections = new ConcurrentHashMap<String, AbstractLookupd>();
+		this.connClass = DefaultConnection.class; // TODO can be passed by caller
+		this.lookupdConnections = new ConcurrentHashMap<String, DefaultLookup>();
         this.lookupdScheduler = Executors.newScheduledThreadPool(1);
 
 		// register action for shutdown
@@ -136,13 +136,13 @@ public abstract class NSQReader {
 	
 	// lookupd stuff
 	
-	public void addLookupd(AbstractLookupd lookupd) {
-		String addr = lookupd.getAddr();
-		AbstractLookupd stored = this.lookupdConnections.putIfAbsent(addr, lookupd);
+	public void addLookupd(DefaultLookup lookupd) {
+		String lookupAddr = lookupd.getLookupAddr();
+		DefaultLookup stored = this.lookupdConnections.putIfAbsent(lookupAddr, lookupd);
 		if (stored != null){
 			return;
 		}
-        lookupdScheduler.scheduleAtFixedRate(new BasicLookupdJob(addr, this), 30, 30, SECONDS);
+        lookupdScheduler.scheduleAtFixedRate(new ReaderLookupJob(lookupAddr, this), 0, 30, SECONDS);
 	}
 
 	public String toString(){
@@ -153,7 +153,7 @@ public abstract class NSQReader {
 		return topic;
 	}
 
-	public ConcurrentHashMap<String, AbstractLookupd> getLookupdConnections() {
+	public ConcurrentHashMap<String, DefaultLookup> getLookupdConnections() {
 		return lookupdConnections;
 	}
 

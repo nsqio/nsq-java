@@ -8,6 +8,7 @@ package ly.bit.nsq.exceptions;
  *
  */
 public class RequeueWithoutBackoff extends NSQException {
+	private static final long serialVersionUID = 7482757109732670199L;
 
 	public RequeueWithoutBackoff(Throwable t) {
 		super(t);
