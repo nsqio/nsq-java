@@ -61,6 +61,7 @@ public class DefaultLookup {
 		if (allHttpAddr == null || allHttpAddr.size() < 1) return null;
 		return allHttpAddr.get(0);
 	}
+	
 	public String getAvailableHttpAddr() {
 		List<String> allHttpAddr = getHttpAddrs();
 		if (allHttpAddr == null || allHttpAddr.size() < 1) return null;

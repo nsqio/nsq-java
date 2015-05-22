@@ -23,6 +23,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -42,7 +44,7 @@ public class NSQProducer {
 
 	private String defaultNsqdAddr;
 	private DefaultLookup lookup;
-	private ConcurrentHashMap<String, String> hostIndex;
+	private ConcurrentHashMap<String, List<String>> hostIndex;
 	private ConcurrentHashMap<String, Integer> reTryCountMap;
 	protected ExecutorService executor = Executors.newCachedThreadPool();
 
@@ -57,7 +59,7 @@ public class NSQProducer {
 
 	public NSQProducer(String lookupAddr) {
 		this.lookup = new DefaultLookup(lookupAddr);
-		this.hostIndex = new ConcurrentHashMap<String, String>();
+		this.hostIndex = new ConcurrentHashMap<String, List<String>>();
 		this.reTryCountMap = new ConcurrentHashMap<String, Integer>();
 
 		SchemeRegistry schemeRegistry = new SchemeRegistry();
@@ -175,22 +177,25 @@ public class NSQProducer {
 	}
 
 	public String getUrl(String topic) {
-		String url = hostIndex.get(topic);
-		if (url == null) {
+		List<String> urls = hostIndex.get(topic);
+		if (urls == null) {
 			if (StringUtils.isBlank(lookup.getLookupAddr()) && !StringUtils.isBlank(defaultNsqdAddr)) {
-				url = new StringBuffer(defaultNsqdAddr).append(PUT_URL).append(topic).toString();
-				hostIndex.put(topic, url);
+				return new StringBuffer(defaultNsqdAddr).append(PUT_URL).append(topic).toString();
 			} else {
-				String httpAddr = lookup.getAvailableHttpAddr(topic);
-				if (httpAddr == null) httpAddr = lookup.getAvailableHttpAddr();
-				if (httpAddr == null) return null;
-				url = new StringBuffer(httpAddr).append(PUT_URL).append(topic).toString();
-				hostIndex.put(topic, url);
+				List<String> httpAddrs = lookup.getHttpAddrs(topic);
+				if (httpAddrs == null) httpAddrs = lookup.getHttpAddrs();
+				if (httpAddrs == null) return null;
+				urls = new ArrayList<String>(httpAddrs.size());
+				for (String httpAddr : httpAddrs) {
+					String url = new StringBuffer(httpAddr).append(PUT_URL).append(topic).toString();
+					urls.add(url);
+				}
+				hostIndex.put(topic, urls);
 				reTryCountMap.put(topic, 0);
 			}
 		}
 		
-		return url;
+		return urls.get((int)(Math.random()*100) % urls.size());
 	}
 
 	/**
