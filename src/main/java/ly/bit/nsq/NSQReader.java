@@ -142,7 +142,7 @@ public abstract class NSQReader {
 		if (stored != null){
 			return;
 		}
-        lookupdScheduler.scheduleAtFixedRate(new BasicLookupdJob(addr, this), 30, 30, SECONDS);
+        lookupdScheduler.scheduleAtFixedRate(new BasicLookupdJob(addr, this), 5, 30, SECONDS);
 	}
 
 	public String toString(){
